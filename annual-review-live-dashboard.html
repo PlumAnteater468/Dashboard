@@ -1,0 +1,1402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Annual Review Plan Dashboard</title>
+
+<style>
+:root {
+  --navy:#112b45;
+  --blue:#1f6f8b;
+  --teal:#22a699;
+  --gold:#f2b84b;
+  --red:#d95d59;
+  --ink:#182431;
+  --muted:#667788;
+  --line:#dce5ec;
+  --paper:#f4f7fa;
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font:14px/1.45 "Segoe UI",Arial,sans-serif;
+}
+
+button,input,select { font:inherit; }
+
+header {
+  background:linear-gradient(125deg,var(--navy),#174b68);
+  color:white;
+  padding:28px clamp(18px,4vw,54px) 32px;
+}
+
+header h1 {
+  margin:0;
+  font-size:clamp(24px,3vw,38px);
+}
+
+header p {
+  margin:6px 0 0;
+  color:#d9e8f1;
+}
+
+.top {
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.actions {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+button {
+  border:0;
+  border-radius:8px;
+  padding:9px 13px;
+  cursor:pointer;
+  font-weight:650;
+}
+
+.primary { background:var(--teal); color:white; }
+
+.ghost {
+  background:#ffffff1c;
+  color:white;
+  border:1px solid #ffffff44;
+}
+
+.light { background:#edf3f7; color:var(--navy); }
+
+main {
+  max-width:1450px;
+  margin:-18px auto 48px;
+  padding:0 22px;
+}
+
+.statusbar {
+  background:white;
+  border:1px solid var(--line);
+  border-radius:11px;
+  padding:10px 14px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  box-shadow:0 5px 18px #17334d12;
+}
+
+.dot {
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:var(--gold);
+}
+
+.dot.live { background:var(--teal); }
+
+#sourceText {
+  flex:1;
+  color:var(--muted);
+}
+
+.kpis {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(155px,1fr));
+  gap:14px;
+  margin:16px 0;
+}
+
+.card {
+  background:white;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:18px;
+  box-shadow:0 4px 15px #17334d0b;
+}
+
+.kpi small {
+  color:var(--muted);
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+}
+
+.kpi strong {
+  display:block;
+  font-size:30px;
+  color:var(--navy);
+  margin-top:4px;
+}
+
+.kpi em {
+  font-style:normal;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns:1.25fr .85fr;
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.card h2 {
+  font-size:16px;
+  margin:0 0 14px;
+  color:var(--navy);
+}
+
+.bars {
+  display:grid;
+  gap:8px;
+}
+
+.barrow {
+  display:grid;
+  grid-template-columns:52px 1fr 32px;
+  align-items:center;
+  gap:8px;
+}
+
+.teams .barrow {
+  grid-template-columns:minmax(150px,1.7fr) 2fr 34px;
+}
+
+.track {
+  height:10px;
+  background:#edf2f5;
+  border-radius:8px;
+  overflow:hidden;
+}
+
+.fill {
+  height:100%;
+  background:linear-gradient(90deg,var(--blue),var(--teal));
+  border-radius:8px;
+}
+
+.barrow b {
+  text-align:right;
+  font-size:12px;
+}
+
+.donutwrap {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:26px;
+  min-height:195px;
+}
+
+.donut {
+  width:150px;
+  height:150px;
+  border-radius:50%;
+  position:relative;
+}
+
+.donut::after {
+  content:"";
+  position:absolute;
+  inset:26px;
+  background:white;
+  border-radius:50%;
+}
+
+.legend {
+  display:grid;
+  gap:9px;
+}
+
+.legend span {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.swatch {
+  width:10px;
+  height:10px;
+  border-radius:3px;
+}
+
+.toolbar {
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+
+.toolbar input,
+.toolbar select,
+.field input {
+  border:1px solid #ccd8e1;
+  background:white;
+  border-radius:8px;
+  padding:9px 10px;
+  min-width:150px;
+}
+
+.toolbar input {
+  flex:1;
+  min-width:220px;
+}
+
+.tabs {
+  display:flex;
+  gap:4px;
+  margin-bottom:12px;
+}
+
+.tab {
+  background:#e8eef3;
+  color:var(--muted);
+}
+
+.tab.active {
+  background:var(--navy);
+  color:white;
+}
+
+.tablewrap {
+  overflow:auto;
+  max-height:560px;
+  border:1px solid var(--line);
+  border-radius:9px;
+}
+
+table {
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+}
+
+th {
+  position:sticky;
+  top:0;
+  background:var(--navy);
+  color:white;
+  text-align:left;
+  padding:10px;
+  white-space:nowrap;
+}
+
+td {
+  padding:9px 10px;
+  border-bottom:1px solid #e8eef2;
+  vertical-align:top;
+}
+
+tbody tr:hover { background:#f4faf9; }
+
+.pill {
+  display:inline-block;
+  border-radius:999px;
+  padding:3px 8px;
+  font-size:11px;
+  font-weight:750;
+  white-space:nowrap;
+}
+
+.datedentry {
+  background:#dff3ee;
+  color:#176c61;
+}
+
+.attention {
+  background:#fff0d1;
+  color:#8a5a00;
+}
+
+.unscheduled {
+  background:#fde4e3;
+  color:#963c39;
+}
+
+.spark {
+  width:100%;
+  height:150px;
+}
+
+.empty {
+  text-align:center;
+  padding:36px;
+  color:var(--muted);
+}
+
+.modal {
+  position:fixed;
+  inset:0;
+  background:#0a1b2bc9;
+  display:none;
+  place-items:center;
+  padding:20px;
+  z-index:10;
+}
+
+.modal.open { display:grid; }
+
+.panel {
+  background:white;
+  border-radius:14px;
+  width:min(700px,100%);
+  max-height:90vh;
+  overflow:auto;
+  padding:24px;
+}
+
+.panel h2 {
+  margin:0;
+  color:var(--navy);
+}
+
+.panel p,
+.panel li { color:var(--muted); }
+
+.fields {
+  display:grid;
+  gap:12px;
+}
+
+.field label {
+  display:block;
+  font-weight:700;
+  margin-bottom:4px;
+}
+
+.field input { width:100%; }
+
+.note {
+  background:#eef7f6;
+  border-left:4px solid var(--teal);
+  padding:10px 12px;
+  border-radius:5px;
+}
+
+.error {
+  background:#fff0ef;
+  color:#9c3732;
+  padding:10px;
+  border-radius:7px;
+  display:none;
+  margin-top:12px;
+}
+
+code {
+  background:#eef2f5;
+  padding:2px 5px;
+  border-radius:4px;
+  word-break:break-all;
+}
+
+@media(max-width:850px) {
+  .kpis { grid-template-columns:repeat(2,1fr); }
+  .grid { grid-template-columns:1fr; }
+  .top { flex-direction:column; }
+}
+
+@media(max-width:480px) {
+  .kpis { grid-template-columns:1fr; }
+  main { padding:0 12px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="top">
+    <div>
+      <h1>Annual Review Plan</h1>
+      <p>Food safety, compliance and verification dashboard</p>
+    </div>
+
+    <div class="actions">
+      <button class="ghost" id="setupBtn">Connection setup</button>
+      <button class="primary" id="refreshBtn">Connect &amp; refresh</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="statusbar">
+    <span class="dot" id="statusDot"></span>
+    <span id="sourceText">Preview from the workbook at dashboard creation</span>
+    <button class="light" id="signOutBtn" hidden>Sign out</button>
+  </div>
+
+  <section class="kpis">
+    <div class="card kpi">
+      <small>Distinct activities</small>
+      <strong id="kActivities">55</strong>
+      <em>Across all teams</em>
+    </div>
+
+    <div class="card kpi">
+      <small>Dated entries</small>
+      <strong id="kDated">57</strong>
+      <em>Recorded in the plan</em>
+    </div>
+
+    <div class="card kpi">
+      <small>Needs attention</small>
+      <strong id="kAttention">7</strong>
+      <em>Due, upcoming or reschedule</em>
+    </div>
+
+    <div class="card kpi">
+      <small>Unscheduled</small>
+      <strong id="kUnscheduled">10</strong>
+      <em>Activities without a month entry</em>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Entries by month</h2>
+      <div class="bars" id="monthBars"></div>
+    </div>
+
+    <div class="card">
+      <h2>Plan status</h2>
+      <div class="donutwrap">
+        <div class="donut" id="donut"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Records by team</h2>
+      <div class="bars teams" id="teamBars"></div>
+    </div>
+
+    <div class="card">
+      <h2>Weekly verification completion</h2>
+      <svg class="spark" id="spark"
+           viewBox="0 0 600 150"
+           preserveAspectRatio="none"></svg>
+      <p id="weeklyNote" style="color:#667788">
+        Current average: 6.8% of tracked fields populated.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="tabs">
+      <button class="tab active" data-tab="annual">Annual plan</button>
+      <button class="tab" data-tab="weekly">Weekly verification</button>
+    </div>
+
+    <div class="toolbar">
+      <input id="search" placeholder="Search activity or team">
+
+      <select id="teamFilter">
+        <option value="">All teams</option>
+      </select>
+
+      <select id="monthFilter">
+        <option value="">All months</option>
+      </select>
+
+      <select id="typeFilter">
+        <option value="">All statuses</option>
+        <option>Dated entry</option>
+        <option>Attention</option>
+        <option>Unscheduled</option>
+      </select>
+    </div>
+
+    <div class="tablewrap" id="tableWrap">
+      <div class="empty">
+        Connect to Microsoft 365 to load row-level detail.
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modal">
+  <div class="panel">
+    <h2>Live SharePoint connection</h2>
+
+    <p>
+      This page reads
+      <code>ANNUAL REVIEW PLAN 2026!B1:T148</code>
+      through Microsoft Graph.
+    </p>
+
+    <div class="note">
+      <b>One-time administrator setup:</b>
+      Register a Single-page application in Microsoft Entra ID,
+      add the hosted page URL as a SPA redirect URI, and grant
+      delegated <code>Files.ReadWrite</code>. No client secret is used.
+    </div>
+
+    <ol>
+      <li>Host this HTML on an HTTPS website.</li>
+      <li>Add its URL as the app registration’s SPA redirect URI.</li>
+      <li>Create a SharePoint sharing link for the workbook.</li>
+    </ol>
+
+    <div class="fields">
+      <div class="field">
+        <label>Tenant ID or tenant domain</label>
+        <input id="tenant" placeholder="contoso.onmicrosoft.com">
+      </div>
+
+      <div class="field">
+        <label>Application (client) ID</label>
+        <input id="clientId"
+               placeholder="00000000-0000-0000-0000-000000000000">
+      </div>
+
+      <div class="field">
+        <label>Workbook SharePoint sharing link</label>
+        <input id="shareUrl"
+               placeholder="https://contoso.sharepoint.com/:x:/r/sites/...">
+      </div>
+
+      <div class="field">
+        <label>Redirect URI to register</label>
+        <input id="redirectShow" readonly>
+      </div>
+    </div>
+
+    <div class="error" id="error"></div>
+
+    <div class="actions" style="margin-top:16px">
+      <button class="primary" id="saveConnect">Save &amp; connect</button>
+      <button class="light" id="closeModal">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SNAP = {
+  months: {
+    Oct:6, Jul:6, Jan:11, Apr:8, Aug:3, Dec:7,
+    May:5, Sep:4, Nov:7, Mar:4, Feb:2, Jun:1
+  },
+  types: {
+    "Dated entry":57,
+    "Attention":7,
+    "Unscheduled":10
+  },
+  teams: {
+    "Food Safety Team":20,
+    "HACCP Team":3,
+    "Management Team":17,
+    "CFIA Canadian Grain Sampling Program (CGSP) Team":2,
+    "Trader Organic System Plan (TOSP) Team":2,
+    "OHS":4,
+    "CFIA - SFCR Expires: 2027-07-11":3,
+    "Verification Team":23
+  },
+  activities:55
+};
+
+const annualHeaders = [
+  "Team","Activity","Frequency","Month",
+  "Year","Entry","Entry Type","Source Row"
+];
+
+const weeklyHeaders = [
+  "Week","Bagging / Warehouse","Lab","Maintenance",
+  "North Loading HC","South Unloading","QC Checks",
+  "North Loading Magnet","Groater Magnet","Bagging Magnet",
+  "Tote Chute Magnet","South Receiving Magnet",
+  "North Receiving Magnet","Pest Date","Pest Document",
+  "Completed Checks","Possible Checks","Completion %","Source Row"
+];
+
+let annual = [];
+let weekly = [];
+let activeTab = "annual";
+
+const $ = selector => document.querySelector(selector);
+const $$ = selector => [...document.querySelectorAll(selector)];
+
+function getConfig() {
+  try {
+    return JSON.parse(localStorage.getItem("reviewDashConfig")) || {};
+  } catch {
+    return {};
+  }
+}
+
+function redirectUri() {
+  if (location.protocol === "file:") return "";
+  return location.origin + location.pathname;
+}
+
+function randomString(length = 48) {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+
+  return [...bytes]
+    .map(value => (value % 36).toString(36))
+    .join("");
+}
+
+function base64Url(bytes) {
+  let value = "";
+
+  bytes.forEach(byte => {
+    value += String.fromCharCode(byte);
+  });
+
+  return btoa(value)
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+async function createChallenge(verifier) {
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return base64Url(new Uint8Array(digest));
+}
+
+function createShareToken(url) {
+  return "u!" + base64Url(new TextEncoder().encode(url));
+}
+
+function getToken() {
+  try {
+    const value = JSON.parse(
+      sessionStorage.getItem("reviewDashToken")
+    );
+
+    if (value && Date.now() < value.expires_at - 60000) {
+      return value;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+async function login() {
+  const config = getConfig();
+
+  if (!config.tenant || !config.clientId || !config.shareUrl) {
+    openSetup("Complete all three connection fields first.");
+    return;
+  }
+
+  if (!redirectUri()) {
+    openSetup(
+      "Host this HTML on an HTTP or HTTPS address before signing in."
+    );
+    return;
+  }
+
+  const verifier = randomString(64);
+  const state = randomString(24);
+
+  sessionStorage.setItem("pkceVerifier", verifier);
+  sessionStorage.setItem("oauthState", state);
+
+  const query = new URLSearchParams({
+    client_id: config.clientId,
+    response_type: "code",
+    redirect_uri: redirectUri(),
+    response_mode: "query",
+    scope: "openid profile offline_access Files.ReadWrite",
+    state: state,
+    code_challenge: await createChallenge(verifier),
+    code_challenge_method: "S256"
+  });
+
+  location.href =
+    "https://login.microsoftonline.com/" +
+    encodeURIComponent(config.tenant) +
+    "/oauth2/v2.0/authorize?" +
+    query;
+}
+
+async function redeemAuthorizationCode() {
+  const query = new URLSearchParams(location.search);
+
+  if (query.get("error")) {
+    throw new Error(
+      query.get("error_description") || query.get("error")
+    );
+  }
+
+  const code = query.get("code");
+
+  if (!code) return false;
+
+  if (query.get("state") !== sessionStorage.getItem("oauthState")) {
+    throw new Error("The sign-in state did not match. Please try again.");
+  }
+
+  const config = getConfig();
+
+  const body = new URLSearchParams({
+    client_id: config.clientId,
+    grant_type: "authorization_code",
+    code: code,
+    redirect_uri: redirectUri(),
+    code_verifier: sessionStorage.getItem("pkceVerifier"),
+    scope: "openid profile offline_access Files.ReadWrite"
+  });
+
+  const response = await fetch(
+    "https://login.microsoftonline.com/" +
+    encodeURIComponent(config.tenant) +
+    "/oauth2/v2.0/token",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":"application/x-www-form-urlencoded"
+      },
+      body: body
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.error_description || "Token request failed."
+    );
+  }
+
+  result.expires_at = Date.now() + result.expires_in * 1000;
+
+  sessionStorage.setItem(
+    "reviewDashToken",
+    JSON.stringify(result)
+  );
+
+  history.replaceState({}, document.title, redirectUri());
+
+  return true;
+}
+
+async function graph(url) {
+  const currentToken = getToken();
+
+  if (!currentToken) {
+    await login();
+    return null;
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: "Bearer " + currentToken.access_token
+    }
+  });
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+
+    throw new Error(
+      result.error?.message ||
+      "Microsoft Graph returned status " + response.status
+    );
+  }
+
+  return response.json();
+}
+
+function parseSource(source) {
+  const text = source.text || source.values;
+  const values = source.values || text;
+
+  const clean = value =>
+    String(value ?? "")
+      .replace(/\u00a0/g, " ")
+      .trim();
+
+  const months = [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
+
+  let currentYear = "";
+  const years = [];
+
+  for (let column = 7; column <= 18; column++) {
+    const year = clean(text[2][column]);
+
+    if (year) currentYear = year;
+
+    years.push(currentYear);
+  }
+
+  const annualRows = [];
+  let team = "";
+
+  for (let row = 3; row < 103; row++) {
+    const activity = clean(text[row][0]);
+    const frequency = clean(text[row][6]);
+
+    if (frequency.toLowerCase() === "frequency") {
+      team = activity;
+      continue;
+    }
+
+    if (!activity || !frequency) continue;
+
+    let entries = 0;
+
+    for (let column = 7; column <= 18; column++) {
+      const entryText = clean(text[row][column]);
+
+      if (!entryText) continue;
+
+      const isDate =
+        /\d/.test(entryText) &&
+        !/re-schedule|upcoming|due/i.test(entryText);
+
+      annualRows.push([
+        team || "Verification Team",
+        activity,
+        frequency,
+        months[column - 7],
+        years[column - 7],
+        isDate ? values[row][column] : entryText,
+        isDate ? "Dated entry" : "Attention",
+        row + 1
+      ]);
+
+      entries++;
+    }
+
+    if (!entries) {
+      annualRows.push([
+        team || "Verification Team",
+        activity,
+        frequency,
+        "",
+        "",
+        "",
+        "Unscheduled",
+        row + 1
+      ]);
+    }
+  }
+
+  const sourceColumns = [
+    0,1,2,3,4,5,6,8,9,10,11,12,13,15,16
+  ];
+
+  const weeklyRows = [];
+
+  for (let row = 106; row < 148; row++) {
+    const week = clean(text[row][0]);
+
+    if (!week) continue;
+
+    const result = sourceColumns.map(column => {
+      const displayedValue = clean(text[row][column]);
+
+      if (typeof values[row][column] === "number") {
+        return values[row][column];
+      }
+
+      return displayedValue;
+    });
+
+    let completed = 0;
+
+    for (let index = 1; index <= 14; index++) {
+      if (clean(result[index])) completed++;
+    }
+
+    weeklyRows.push([
+      ...result,
+      completed,
+      14,
+      completed / 14,
+      row + 1
+    ]);
+  }
+
+  return {
+    annual: annualRows,
+    weekly: weeklyRows
+  };
+}
+
+async function refreshDashboard() {
+  try {
+    setSource("Connecting…", false);
+
+    if (!getToken()) {
+      await login();
+      return;
+    }
+
+    const config = getConfig();
+
+    const sharedItem = await graph(
+      "https://graph.microsoft.com/v1.0/shares/" +
+      createShareToken(config.shareUrl) +
+      "/driveItem?$select=id,name,parentReference"
+    );
+
+    if (!sharedItem) return;
+
+    const driveId = sharedItem.parentReference?.driveId;
+
+    if (!driveId) {
+      throw new Error(
+        "The sharing link did not resolve to a SharePoint drive."
+      );
+    }
+
+    const worksheetName =
+      encodeURIComponent("ANNUAL REVIEW PLAN 2026");
+
+    const range = await graph(
+      "https://graph.microsoft.com/v1.0/drives/" +
+      encodeURIComponent(driveId) +
+      "/items/" +
+      encodeURIComponent(sharedItem.id) +
+      "/workbook/worksheets/" +
+      worksheetName +
+      "/range(address='B1:T148')?$select=values,text"
+    );
+
+    const parsed = parseSource(range);
+
+    annual = parsed.annual;
+    weekly = parsed.weekly;
+
+    renderAll();
+
+    setSource(
+      "Live • " +
+      sharedItem.name +
+      " • refreshed " +
+      new Date().toLocaleString(),
+      true
+    );
+
+    $("#signOutBtn").hidden = false;
+  } catch (error) {
+    setSource("Live refresh failed", false);
+    openSetup(error.message);
+  }
+}
+
+function setSource(message, live) {
+  $("#sourceText").textContent = message;
+  $("#statusDot").classList.toggle("live", live);
+}
+
+function excelDate(value) {
+  if (typeof value === "number" && value > 25000) {
+    const date = new Date(
+      Date.UTC(1899,11,30) + value * 86400000
+    );
+
+    return date.toLocaleDateString(undefined, {
+      year:"numeric",
+      month:"short",
+      day:"numeric"
+    });
+  }
+
+  return value ?? "";
+}
+
+function countBy(rows, column) {
+  return rows.reduce((result, row) => {
+    if (row[column]) {
+      result[row[column]] = (result[row[column]] || 0) + 1;
+    }
+
+    return result;
+  }, {});
+}
+
+function renderBars(selector, data, order) {
+  const values = order
+    ? order.map(key => [key, data[key] || 0])
+    : Object.entries(data).sort((a,b) => b[1] - a[1]);
+
+  const maximum = Math.max(
+    1,
+    ...values.map(item => item[1])
+  );
+
+  $(selector).innerHTML = values.map(([label,value]) => `
+    <div class="barrow">
+      <span title="${escapeHtml(label)}">
+        ${escapeHtml(label)}
+      </span>
+      <div class="track">
+        <div class="fill"
+             style="width:${value / maximum * 100}%">
+        </div>
+      </div>
+      <b>${value}</b>
+    </div>
+  `).join("");
+}
+
+function renderDonut(types) {
+  const dated = types["Dated entry"] || 0;
+  const attention = types.Attention || 0;
+  const unscheduled = types.Unscheduled || 0;
+  const total = dated + attention + unscheduled || 1;
+
+  const first = dated / total * 100;
+  const second = (dated + attention) / total * 100;
+
+  $("#donut").style.background =
+    `conic-gradient(
+      var(--teal) 0 ${first}%,
+      var(--gold) ${first}% ${second}%,
+      var(--red) ${second}% 100%
+    )`;
+
+  const items = [
+    ["Dated entry", dated, "var(--teal)"],
+    ["Attention", attention, "var(--gold)"],
+    ["Unscheduled", unscheduled, "var(--red)"]
+  ];
+
+  $("#legend").innerHTML = items.map(item => `
+    <span>
+      <i class="swatch" style="background:${item[2]}"></i>
+      ${item[0]} <b>${item[1]}</b>
+    </span>
+  `).join("");
+}
+
+function renderWeeklyChart() {
+  const values = weekly.map(row => Number(row[17]) || 0);
+
+  if (!values.length) {
+    $("#spark").innerHTML = `
+      <text x="300" y="75"
+            text-anchor="middle"
+            fill="#667788">
+        Connect to view weekly detail
+      </text>
+    `;
+    return;
+  }
+
+  const width = 600;
+  const height = 140;
+
+  const points = values.map((value,index) => {
+    const x =
+      index * width /
+      Math.max(1, values.length - 1);
+
+    const y = height - value * 120 - 10;
+
+    return `${x},${y}`;
+  }).join(" ");
+
+  $("#spark").innerHTML = `
+    <line x1="0" y1="130"
+          x2="600" y2="130"
+          stroke="#dce5ec"/>
+
+    <polyline points="${points}"
+              fill="none"
+              stroke="#22a699"
+              stroke-width="3"/>
+
+    <polygon points="0,130 ${points} 600,130"
+             fill="#22a69918"/>
+  `;
+
+  const average =
+    values.reduce((sum,value) => sum + value, 0) /
+    values.length;
+
+  $("#weeklyNote").textContent =
+    "Current average: " +
+    (average * 100).toFixed(1) +
+    "% of tracked fields populated across " +
+    values.length +
+    " weeks.";
+}
+
+function renderAll() {
+  const types = annual.length
+    ? countBy(annual,6)
+    : SNAP.types;
+
+  const months = annual.length
+    ? countBy(annual,3)
+    : SNAP.months;
+
+  const teams = annual.length
+    ? countBy(annual,0)
+    : SNAP.teams;
+
+  const activities = annual.length
+    ? new Set(
+        annual.map(row => row[0] + "|" + row[1])
+      ).size
+    : SNAP.activities;
+
+  $("#kActivities").textContent = activities;
+  $("#kDated").textContent = types["Dated entry"] || 0;
+  $("#kAttention").textContent = types.Attention || 0;
+  $("#kUnscheduled").textContent = types.Unscheduled || 0;
+
+  renderBars("#monthBars", months, [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"
+  ]);
+
+  renderBars("#teamBars", teams);
+  renderDonut(types);
+  renderWeeklyChart();
+  updateFilters();
+  renderTable();
+}
+
+function updateFilters() {
+  const teams = [
+    ...new Set(
+      annual.map(row => row[0]).filter(Boolean)
+    )
+  ].sort();
+
+  const months = [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
+
+  $("#teamFilter").innerHTML =
+    '<option value="">All teams</option>' +
+    teams.map(team =>
+      `<option>${escapeHtml(team)}</option>`
+    ).join("");
+
+  $("#monthFilter").innerHTML =
+    '<option value="">All months</option>' +
+    months.map(month =>
+      `<option>${month}</option>`
+    ).join("");
+
+  const annualMode = activeTab === "annual";
+
+  $("#teamFilter").hidden = !annualMode;
+  $("#monthFilter").hidden = !annualMode;
+  $("#typeFilter").hidden = !annualMode;
+}
+
+function renderTable() {
+  const rows =
+    activeTab === "annual" ? annual : weekly;
+
+  const headers =
+    activeTab === "annual"
+      ? annualHeaders
+      : weeklyHeaders;
+
+  if (!rows.length) {
+    $("#tableWrap").innerHTML = `
+      <div class="empty">
+        Connect to Microsoft 365 to load row-level detail.
+      </div>
+    `;
+    return;
+  }
+
+  const query = $("#search").value.toLowerCase();
+  const team = $("#teamFilter").value;
+  const month = $("#monthFilter").value;
+  const type = $("#typeFilter").value;
+
+  let view = rows.filter(row =>
+    !query ||
+    row.some(value =>
+      String(value).toLowerCase().includes(query)
+    )
+  );
+
+  if (activeTab === "annual") {
+    view = view.filter(row =>
+      (!team || row[0] === team) &&
+      (!month || row[3] === month) &&
+      (!type || row[6] === type)
+    );
+  }
+
+  const displayedColumns =
+    activeTab === "annual"
+      ? [0,1,2,3,4,5,6]
+      : [0,13,14,15,16,17];
+
+  const headerHtml = displayedColumns
+    .map(index => `<th>${headers[index]}</th>`)
+    .join("");
+
+  const bodyHtml = view.map(row => {
+    const cells = displayedColumns.map(index => {
+      let value = row[index];
+
+      if (
+        (activeTab === "annual" && index === 5) ||
+        (activeTab === "weekly" && index === 13)
+      ) {
+        value = excelDate(value);
+      }
+
+      if (activeTab === "annual" && index === 6) {
+        const className =
+          String(value).toLowerCase().replace(/\s/g,"");
+
+        return `
+          <td>
+            <span class="pill ${className}">
+              ${escapeHtml(value)}
+            </span>
+          </td>
+        `;
+      }
+
+      if (activeTab === "weekly" && index === 17) {
+        value = (Number(value) * 100).toFixed(1) + "%";
+      }
+
+      return `<td>${escapeHtml(value)}</td>`;
+    }).join("");
+
+    return `<tr>${cells}</tr>`;
+  }).join("");
+
+  $("#tableWrap").innerHTML = `
+    <table>
+      <thead>
+        <tr>${headerHtml}</tr>
+      </thead>
+      <tbody>${bodyHtml}</tbody>
+    </table>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    character => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
+    })[character]
+  );
+}
+
+function openSetup(message = "") {
+  const config = getConfig();
+
+  $("#tenant").value = config.tenant || "";
+  $("#clientId").value = config.clientId || "";
+  $("#shareUrl").value = config.shareUrl || "";
+
+  $("#redirectShow").value =
+    redirectUri() ||
+    "Host on HTTPS to generate a redirect URI";
+
+  $("#error").textContent = message;
+  $("#error").style.display =
+    message ? "block" : "none";
+
+  $("#modal").classList.add("open");
+}
+
+$("#setupBtn").onclick = () => openSetup();
+
+$("#closeModal").onclick = () => {
+  $("#modal").classList.remove("open");
+};
+
+$("#saveConnect").onclick = () => {
+  localStorage.setItem(
+    "reviewDashConfig",
+    JSON.stringify({
+      tenant:$("#tenant").value.trim(),
+      clientId:$("#clientId").value.trim(),
+      shareUrl:$("#shareUrl").value.trim()
+    })
+  );
+
+  $("#modal").classList.remove("open");
+  refreshDashboard();
+};
+
+$("#refreshBtn").onclick = refreshDashboard;
+
+$("#signOutBtn").onclick = () => {
+  sessionStorage.clear();
+  $("#signOutBtn").hidden = true;
+
+  annual = [];
+  weekly = [];
+
+  setSource("Signed out • preview shown", false);
+  renderAll();
+};
+
+[
+  "search",
+  "teamFilter",
+  "monthFilter",
+  "typeFilter"
+].forEach(id => {
+  $("#" + id).addEventListener(
+    id === "search" ? "input" : "change",
+    renderTable
+  );
+});
+
+$$(".tab").forEach(button => {
+  button.onclick = () => {
+    $$(".tab").forEach(item =>
+      item.classList.remove("active")
+    );
+
+    button.classList.add("active");
+    activeTab = button.dataset.tab;
+
+    updateFilters();
+    renderTable();
+  };
+});
+
+(async () => {
+  renderAll();
+
+  try {
+    if (await redeemAuthorizationCode()) {
+      await refreshDashboard();
+    } else if (getToken()) {
+      await refreshDashboard();
+    } else if (!getConfig().clientId) {
+      setTimeout(() => openSetup(), 350);
+    }
+  } catch (error) {
+    openSetup(error.message);
+  }
+})();
+</script>
+
+</body>
+</html>
