@@ -618,6 +618,73 @@ function entryColumnLetter(month) {
   return i === -1 ? null : ENTRY_COLUMNS[i];
 }
 
+// Sheet column (0-based from column B) backing each weekly-table column,
+// aligned 1:1 with weeklyHeaders. Shared between parseSource() (reading)
+// and the editable weekly cells (writing), so both always agree on which
+// workbook column a given table column maps to.
+const WEEKLY_SOURCE_COLUMNS = [
+  0,1,2,3,4,5,6,8,9,10,11,12,13,15,16
+];
+
+// weeklyHeaders indexes that should render as editable/savable cells:
+// Bagging / Warehouse .. North Receiving Magnet.
+const WEEKLY_EDITABLE_INDEXES = [1,2,3,4,5,6,7,8,9,10,11,12];
+
+function letterForBBasedIndex(index) {
+  // index 0 -> column B, 1 -> C, ... matches how WEEKLY_SOURCE_COLUMNS and
+  // the annual Entry columns (I..T) are both expressed relative to B.
+  return String.fromCharCode(66 + index);
+}
+
+function weeklyColumnLetter(headerIndex) {
+  const sheetColumn = WEEKLY_SOURCE_COLUMNS[headerIndex];
+  return sheetColumn === undefined ? null : letterForBBasedIndex(sheetColumn);
+}
+
+// Recognises a handful of common date formats so a typed date can be saved
+// as a real Excel date (sortable/formattable) rather than plain text, while
+// anything not recognised as a date (e.g. "Reschedule", "N/A") is still
+// saved as plain text exactly as typed.
+function tryParseDate(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  let match = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (match) {
+    const date = new Date(Date.UTC(+match[1], +match[2] - 1, +match[3]));
+    if (!isNaN(date) && date.getUTCMonth() === +match[2] - 1) return date;
+  }
+
+  match = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (match) {
+    let year = +match[3];
+    if (year < 100) year += 2000;
+    const date = new Date(Date.UTC(year, +match[1] - 1, +match[2]));
+    if (!isNaN(date) && date.getUTCMonth() === +match[1] - 1) return date;
+  }
+
+  if (/[A-Za-z]{3,}/.test(trimmed) && /\d{1,4}/.test(trimmed)) {
+    const parsed = Date.parse(trimmed);
+    if (!isNaN(parsed)) return new Date(parsed);
+  }
+
+  return null;
+}
+
+function dateToExcelSerial(date) {
+  const utcMidnight = Date.UTC(
+    date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()
+  );
+  return Math.round((utcMidnight - Date.UTC(1899,11,30)) / 86400000);
+}
+
+// Converts whatever was typed into either an Excel date serial (if it looks
+// like a date) or the original text, ready to hand to writeRange().
+function valueForSave(text) {
+  const asDate = tryParseDate(text);
+  return asDate ? dateToExcelSerial(asDate) : text;
+}
+
 // Populated once the OneDrive share link is resolved, so write calls can
 // reuse them without re-resolving the share every time.
 let currentDriveId = null;
@@ -971,10 +1038,6 @@ function parseSource(source) {
     }
   }
 
-  const sourceColumns = [
-    0,1,2,3,4,5,6,8,9,10,11,12,13,15,16
-  ];
-
   const weeklyRows = [];
 
   // Reads every weekly row found in the fetched range, rather than a fixed
@@ -985,7 +1048,7 @@ function parseSource(source) {
 
     if (!week) continue;
 
-    const result = sourceColumns.map(column => {
+    const result = WEEKLY_SOURCE_COLUMNS.map(column => {
       const displayedValue = clean(text[row][column]);
 
       if (typeof values[row][column] === "number") {
@@ -1289,6 +1352,17 @@ function updateFilters() {
   $("#typeFilter").hidden = !annualMode;
 }
 
+function renderEditableCell(value, address) {
+  return `
+    <td>
+      <div class="entry-cell">
+        <input type="text" class="entry-input" value="${escapeHtml(value)}">
+        <button class="light save-entry" data-address="${address}">Save</button>
+      </div>
+    </td>
+  `;
+}
+
 function renderTable() {
   const rows =
     activeTab === "annual" ? annual : weekly;
@@ -1344,20 +1418,13 @@ function renderTable() {
         // Entry column: editable only for rows that already have a month
         // (i.e. a real cell in the workbook to write back to). Unscheduled
         // rows have no month yet, so they stay plain text.
-        if (!row[3]) {
+        const columnLetter = entryColumnLetter(row[3]);
+
+        if (!columnLetter) {
           return `<td>${escapeHtml(value)}</td>`;
         }
 
-        return `
-          <td>
-            <div class="entry-cell">
-              <input type="text" class="entry-input" value="${escapeHtml(value)}">
-              <button class="light save-entry"
-                      data-row="${row[7]}"
-                      data-month="${escapeHtml(row[3])}">Save</button>
-            </div>
-          </td>
-        `;
+        return renderEditableCell(value, columnLetter + row[7]);
       }
 
       if (activeTab === "annual" && index === 6) {
@@ -1371,6 +1438,16 @@ function renderTable() {
             </span>
           </td>
         `;
+      }
+
+      if (activeTab === "weekly" && WEEKLY_EDITABLE_INDEXES.includes(index)) {
+        const columnLetter = weeklyColumnLetter(index);
+
+        if (!columnLetter) {
+          return `<td>${escapeHtml(value)}</td>`;
+        }
+
+        return renderEditableCell(value, columnLetter + row[18]);
       }
 
       if (activeTab === "weekly" && index === 17) {
@@ -1481,25 +1558,22 @@ $$(".tab").forEach(button => {
   };
 });
 
-// Handles "Save" clicks on editable Entry cells in the annual plan table.
+// Handles "Save" clicks on editable cells in either table. Dates typed in
+// a recognised format are saved as real Excel dates; anything else is
+// saved as plain text.
 $("#tableWrap").addEventListener("click", async (event) => {
   const button = event.target.closest(".save-entry");
   if (!button) return;
 
   const wrap = button.closest(".entry-cell");
   const input = wrap.querySelector(".entry-input");
-  const columnLetter = entryColumnLetter(button.dataset.month);
-
-  if (!columnLetter) {
-    alert("Could not determine which column to update.");
-    return;
-  }
+  const address = button.dataset.address;
 
   button.disabled = true;
   button.textContent = "Saving…";
 
   try {
-    await writeRange(columnLetter + button.dataset.row, input.value);
+    await writeRange(address, valueForSave(input.value));
     await refreshDashboard();
   } catch (error) {
     alert("Could not save: " + error.message);
