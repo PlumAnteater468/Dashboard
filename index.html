@@ -397,6 +397,24 @@ code {
   word-break:break-all;
 }
 
+.entry-cell {
+  display:flex;
+  gap:6px;
+  align-items:center;
+}
+
+.entry-input {
+  width:130px;
+  padding:4px 6px;
+  border:1px solid #ccd8e1;
+  border-radius:5px;
+}
+
+.save-entry {
+  padding:4px 8px;
+  font-size:11px;
+}
+
 @media(max-width:850px) {
   .kpis { grid-template-columns:repeat(2,1fr); }
   .grid { grid-template-columns:1fr; }
@@ -529,9 +547,9 @@ code {
     <h2>Live OneDrive connection</h2>
 
     <p>
-      This page reads
-      <code>ANNUAL REVIEW PLAN 2026!B1:T200</code>
-      through Microsoft Graph.
+      This page reads and writes the
+      <code>ANNUAL REVIEW PLAN 2026</code>
+      worksheet through Microsoft Graph.
     </p>
 
     <div class="note">
@@ -586,6 +604,24 @@ code {
 // the SAME app registration, change this to "common" and set the app's
 // "Supported account types" to the multi-tenant + personal option.
 const AUTHORITY = "https://login.microsoftonline.com/consumers";
+
+// Name of the worksheet this dashboard reads from and writes back to.
+const SHEET_NAME = "ANNUAL REVIEW PLAN 2026";
+
+// Month -> workbook column letter, used to write Entry edits back to the
+// correct cell. Columns I..T correspond to Jan..Dec in the source sheet.
+const ENTRY_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const ENTRY_COLUMNS = ["I","J","K","L","M","N","O","P","Q","R","S","T"];
+
+function entryColumnLetter(month) {
+  const i = ENTRY_MONTHS.indexOf(month);
+  return i === -1 ? null : ENTRY_COLUMNS[i];
+}
+
+// Populated once the OneDrive share link is resolved, so write calls can
+// reuse them without re-resolving the share every time.
+let currentDriveId = null;
+let currentItemId = null;
 
 const SNAP = {
   months: {
@@ -815,6 +851,48 @@ async function graph(url) {
   return response.json();
 }
 
+// Writes a single cell back to the workbook. `value` is a plain scalar; it's
+// wrapped into the 2D array shape the Graph range PATCH endpoint expects.
+async function writeRange(address, value) {
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("Not signed in.");
+  }
+
+  if (!currentDriveId || !currentItemId) {
+    throw new Error("No workbook is connected yet.");
+  }
+
+  const response = await fetch(
+    "https://graph.microsoft.com/v1.0/drives/" +
+    encodeURIComponent(currentDriveId) +
+    "/items/" +
+    encodeURIComponent(currentItemId) +
+    "/workbook/worksheets/" +
+    encodeURIComponent(SHEET_NAME) +
+    "/range(address='" + address + "')",
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: "Bearer " + token.access_token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ values: [[value]] })
+    }
+  );
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(
+      result.error?.message ||
+      "Write failed: " + response.status
+    );
+  }
+
+  return response.json();
+}
+
 function parseSource(source) {
   const text = source.text || source.values;
   const values = source.values || text;
@@ -899,7 +977,10 @@ function parseSource(source) {
 
   const weeklyRows = [];
 
-  for (let row = 83; row < 134; row++) {
+  // Reads every weekly row found in the fetched range, rather than a fixed
+  // row count, so adding more weeks to the sheet doesn't require a code
+  // change here (the usedRange request below grows with the sheet).
+  for (let row = 106; row < text.length; row++) {
     const week = clean(text[row][0]);
 
     if (!week) continue;
@@ -962,9 +1043,14 @@ async function refreshDashboard() {
       );
     }
 
-    const worksheetName =
-      encodeURIComponent("ANNUAL REVIEW PLAN 2026");
+    currentDriveId = driveId;
+    currentItemId = sharedItem.id;
 
+    const worksheetName = encodeURIComponent(SHEET_NAME);
+
+    // usedRange auto-detects how far down the sheet actually has data, so
+    // adding more weeks to the weekly verification table doesn't require
+    // editing a fixed row number here.
     const range = await graph(
       "https://graph.microsoft.com/v1.0/drives/" +
       encodeURIComponent(driveId) +
@@ -972,7 +1058,7 @@ async function refreshDashboard() {
       encodeURIComponent(sharedItem.id) +
       "/workbook/worksheets/" +
       worksheetName +
-      "/range(address='B1:T200')?$select=values,text"
+      "/usedRange(valuesOnly=true)?$select=values,text"
     );
 
     const parsed = parseSource(range);
@@ -1254,11 +1340,24 @@ function renderTable() {
     const cells = displayedColumns.map(index => {
       let value = row[index];
 
-      if (
-        (activeTab === "annual" && index === 5) ||
-        (activeTab === "weekly" && index === 13)
-      ) {
-        value = excelDate(value);
+      if (activeTab === "annual" && index === 5) {
+        // Entry column: editable only for rows that already have a month
+        // (i.e. a real cell in the workbook to write back to). Unscheduled
+        // rows have no month yet, so they stay plain text.
+        if (!row[3]) {
+          return `<td>${escapeHtml(value)}</td>`;
+        }
+
+        return `
+          <td>
+            <div class="entry-cell">
+              <input type="text" class="entry-input" value="${escapeHtml(value)}">
+              <button class="light save-entry"
+                      data-row="${row[7]}"
+                      data-month="${escapeHtml(row[3])}">Save</button>
+            </div>
+          </td>
+        `;
       }
 
       if (activeTab === "annual" && index === 6) {
@@ -1380,6 +1479,33 @@ $$(".tab").forEach(button => {
     updateFilters();
     renderTable();
   };
+});
+
+// Handles "Save" clicks on editable Entry cells in the annual plan table.
+$("#tableWrap").addEventListener("click", async (event) => {
+  const button = event.target.closest(".save-entry");
+  if (!button) return;
+
+  const wrap = button.closest(".entry-cell");
+  const input = wrap.querySelector(".entry-input");
+  const columnLetter = entryColumnLetter(button.dataset.month);
+
+  if (!columnLetter) {
+    alert("Could not determine which column to update.");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Saving…";
+
+  try {
+    await writeRange(columnLetter + button.dataset.row, input.value);
+    await refreshDashboard();
+  } catch (error) {
+    alert("Could not save: " + error.message);
+    button.disabled = false;
+    button.textContent = "Save";
+  }
 });
 
 (async () => {
