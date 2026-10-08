@@ -1044,7 +1044,7 @@ function parseSource(source) {
   // Reads every weekly row found in the fetched range, rather than a fixed
   // row count, so adding more weeks to the sheet doesn't require a code
   // change here (the usedRange request below grows with the sheet).
-  for (let row = 106; row < text.length; row++) {
+  for (let row = 82; row < text.length; row++) {
     const week = clean(text[row][0]);
 
     if (!week) continue;
@@ -1260,18 +1260,43 @@ function renderWeeklyChart() {
     return `${x},${y}`;
   }).join(" ");
 
+  // Add a subtle vertical grid line for each week.
+  // Every fourth week is slightly stronger to provide a visual
+  // rhythm without adding labels to the 52-week chart.
+  const weekGrid = weekly.map((row, index) => {
+    const x =
+      index * width /
+      Math.max(1, weekly.length - 1);
+
+    const strong = (index % 4 === 0);
+
+    return `
+      <line
+        x1="${x}"
+        y1="0"
+        x2="${x}"
+        y2="130"
+        stroke="#dce5ec"
+        stroke-width="${strong ? 1.5 : 1}"
+        opacity="${strong ? 0.8 : 0.35}"
+      />
+    `;
+  }).join("");
+
   $("#spark").innerHTML = `
+    ${weekGrid}
+
     <line x1="0" y1="130"
           x2="600" y2="130"
           stroke="#dce5ec"/>
+
+    <polygon points="0,130 ${points} 600,130"
+             fill="#22a69918"/>
 
     <polyline points="${points}"
               fill="none"
               stroke="#22a699"
               stroke-width="3"/>
-
-    <polygon points="0,130 ${points} 600,130"
-             fill="#22a69918"/>
   `;
 
   const average =
