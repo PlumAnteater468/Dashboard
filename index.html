@@ -416,6 +416,21 @@ code {
   font-size:11px;
 }
 
+.wk {
+  min-width:34px;
+  padding:4px 8px;
+  border-radius:6px;
+  border:1px solid var(--line);
+  background:transparent;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:600;
+}
+
+.wk.done { background:var(--teal); border-color:var(--teal); color:white; }
+.wk.now  { outline:2px solid var(--blue); outline-offset:1px; }
+.wk:disabled { opacity:.5; }
+
 @media(max-width:850px) {
   .kpis { grid-template-columns:repeat(2,1fr); }
   .grid { grid-template-columns:1fr; }
@@ -1389,6 +1404,42 @@ function renderEditableCell(value, address) {
   `;
 }
 
+function renderWeekButton(value, address, isNow) {
+  const text = excelDate(value);
+  const done = String(text ?? "").trim() !== "";
+
+  return `
+    <td>
+      <button class="wk ${done ? "done" : ""} ${isNow ? "now" : ""}"
+              data-address="${address}"
+              data-value="${escapeHtml(text)}"
+              title="${escapeHtml(text)}">${done ? "\u2713" : "\u25cb"}</button>
+    </td>
+  `;
+}
+
+// Outlines buttons in the current week's row. Works when the Week column
+// holds a real date (the week's start) or a date typed as text.
+function isCurrentWeek(week) {
+  let start = null;
+
+  if (typeof week === "number" && week > 25000) {
+    start = new Date(Date.UTC(1899,11,30) + week * 86400000);
+  } else if (typeof week === "string" && !/^week/i.test(week.trim())) {
+    start = tryParseDate(week);
+  }
+
+  if (!start) return false;
+
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const first = Date.UTC(
+    start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()
+  );
+
+  return today >= first && today < first + 7 * 86400000;
+}
+
 function renderTable() {
   const rows =
     activeTab === "annual" ? annual : weekly;
@@ -1473,7 +1524,7 @@ function renderTable() {
           return `<td>${escapeHtml(value)}</td>`;
         }
 
-        return renderEditableCell(excelDate(value), columnLetter + row[18]);
+        return renderWeekButton(value, columnLetter + row[18], isCurrentWeek(row[0]));
       }
 
       if (activeTab === "weekly" && index === 17) {
@@ -1605,6 +1656,28 @@ $("#tableWrap").addEventListener("click", async (event) => {
     alert("Could not save: " + error.message);
     button.disabled = false;
     button.textContent = "Save";
+  }
+});
+
+$("#tableWrap").addEventListener("click", async (event) => {
+  const button = event.target.closest(".wk");
+  if (!button) return;
+
+  const isDone = button.classList.contains("done");
+  const existing = button.dataset.value;
+
+  // Protect dates or notes already in the sheet from an accidental click.
+  if (isDone && existing !== "Done" &&
+      !confirm('This cell contains "' + existing + '". Clear it?')) return;
+
+  button.disabled = true;
+
+  try {
+    await writeRange(button.dataset.address, isDone ? "" : "Done");
+    await refreshDashboard();
+  } catch (error) {
+    alert("Could not save: " + error.message);
+    button.disabled = false;
   }
 });
 
