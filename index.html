@@ -441,6 +441,18 @@ code {
 .wk.now  { outline:2px solid var(--blue); outline-offset:1px; }
 .wk:disabled { opacity:.5; }
 
+.brand {
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.logo {
+  height:clamp(40px,5vw,56px);
+  width:auto;
+  border-radius:8px;
+}
+
 @media(max-width:850px) {
   .kpis { grid-template-columns:repeat(2,1fr); }
   .grid { grid-template-columns:1fr; }
@@ -458,9 +470,12 @@ code {
 
 <header>
   <div class="top">
-    <div>
-      <h1>Annual Review Plan</h1>
-      <p>Food safety, compliance and verification dashboard</p>
+    <div class="brand">
+      <img class="logo" src="favicon.png" alt="Logo">
+      <div>
+        <h1>Annual Review Plan</h1>
+        <p>Food safety, compliance and verification dashboard</p>
+      </div>
     </div>
 
     <div class="actions">
