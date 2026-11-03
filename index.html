@@ -151,91 +151,10 @@ main {
   font-size:12px;
 }
 
-.grid {
-  display:grid;
-  grid-template-columns:1.25fr .85fr;
-  gap:14px;
-  margin-bottom:14px;
-}
-
 .card h2 {
   font-size:16px;
   margin:0 0 14px;
   color:var(--navy);
-}
-
-.bars {
-  display:grid;
-  gap:8px;
-}
-
-.barrow {
-  display:grid;
-  grid-template-columns:52px 1fr 32px;
-  align-items:center;
-  gap:8px;
-}
-
-.teams .barrow {
-  grid-template-columns:minmax(150px,1.7fr) 2fr 34px;
-}
-
-.track {
-  height:10px;
-  background:#edf2f5;
-  border-radius:8px;
-  overflow:hidden;
-}
-
-.fill {
-  height:100%;
-  background:linear-gradient(90deg,var(--blue),var(--teal));
-  border-radius:8px;
-}
-
-.barrow b {
-  text-align:right;
-  font-size:12px;
-}
-
-.donutwrap {
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:26px;
-  min-height:195px;
-}
-
-.donut {
-  width:150px;
-  height:150px;
-  border-radius:50%;
-  position:relative;
-}
-
-.donut::after {
-  content:"";
-  position:absolute;
-  inset:26px;
-  background:white;
-  border-radius:50%;
-}
-
-.legend {
-  display:grid;
-  gap:9px;
-}
-
-.legend span {
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-
-.swatch {
-  width:10px;
-  height:10px;
-  border-radius:3px;
 }
 
 .toolbar {
@@ -329,11 +248,6 @@ tbody tr:hover { background:#f4faf9; }
 .unscheduled {
   background:#fde4e3;
   color:#963c39;
-}
-
-.spark {
-  width:100%;
-  height:150px;
 }
 
 .empty {
@@ -455,7 +369,6 @@ code {
 
 @media(max-width:850px) {
   .kpis { grid-template-columns:repeat(2,1fr); }
-  .grid { grid-template-columns:1fr; }
   .top { flex-direction:column; }
 }
 
@@ -516,38 +429,6 @@ code {
       <small>Unscheduled</small>
       <strong id="kUnscheduled">10</strong>
       <em>Activities without a month entry</em>
-    </div>
-  </section>
-
-  <section class="grid">
-    <div class="card">
-      <h2>Entries by month</h2>
-      <div class="bars" id="monthBars"></div>
-    </div>
-
-    <div class="card">
-      <h2>Plan status</h2>
-      <div class="donutwrap">
-        <div class="donut" id="donut"></div>
-        <div class="legend" id="legend"></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="grid">
-    <div class="card">
-      <h2>Records by team</h2>
-      <div class="bars teams" id="teamBars"></div>
-    </div>
-
-    <div class="card">
-      <h2>Weekly verification completion</h2>
-      <svg class="spark" id="spark"
-           viewBox="0 0 600 150"
-           preserveAspectRatio="none"></svg>
-      <p id="weeklyNote" style="color:#667788">
-        Current average: 6.8% of tracked fields populated.
-      </p>
     </div>
   </section>
 
@@ -1219,151 +1100,10 @@ function countBy(rows, column) {
   }, {});
 }
 
-function renderBars(selector, data, order) {
-  const values = order
-    ? order.map(key => [key, data[key] || 0])
-    : Object.entries(data).sort((a,b) => b[1] - a[1]);
-
-  const maximum = Math.max(
-    1,
-    ...values.map(item => item[1])
-  );
-
-  $(selector).innerHTML = values.map(([label,value]) => `
-    <div class="barrow">
-      <span title="${escapeHtml(label)}">
-        ${escapeHtml(label)}
-      </span>
-      <div class="track">
-        <div class="fill"
-             style="width:${value / maximum * 100}%">
-        </div>
-      </div>
-      <b>${value}</b>
-    </div>
-  `).join("");
-}
-
-function renderDonut(types) {
-  const dated = types["Dated entry"] || 0;
-  const attention = types.Attention || 0;
-  const unscheduled = types.Unscheduled || 0;
-  const total = dated + attention + unscheduled || 1;
-
-  const first = dated / total * 100;
-  const second = (dated + attention) / total * 100;
-
-  $("#donut").style.background =
-    `conic-gradient(
-      var(--teal) 0 ${first}%,
-      var(--gold) ${first}% ${second}%,
-      var(--red) ${second}% 100%
-    )`;
-
-  const items = [
-    ["Dated entry", dated, "var(--teal)"],
-    ["Attention", attention, "var(--gold)"],
-    ["Unscheduled", unscheduled, "var(--red)"]
-  ];
-
-  $("#legend").innerHTML = items.map(item => `
-    <span>
-      <i class="swatch" style="background:${item[2]}"></i>
-      ${item[0]} <b>${item[1]}</b>
-    </span>
-  `).join("");
-}
-
-function renderWeeklyChart() {
-  const values = weekly.map(row => Number(row[17]) || 0);
-
-  if (!values.length) {
-    $("#spark").innerHTML = `
-      <text x="300" y="75"
-            text-anchor="middle"
-            fill="#667788">
-        Connect to view weekly detail
-      </text>
-    `;
-    return;
-  }
-
-  const width = 600;
-  const height = 140;
-
-  const points = values.map((value,index) => {
-    const x =
-      index * width /
-      Math.max(1, values.length - 1);
-
-    const y = height - value * 120 - 10;
-
-    return `${x},${y}`;
-  }).join(" ");
-
-  // Add a subtle vertical grid line for each week.
-  // Every fourth week is slightly stronger to provide a visual
-  // rhythm without adding labels to the 52-week chart.
-  const weekGrid = weekly.map((row, index) => {
-    const x =
-      index * width /
-      Math.max(1, weekly.length - 1);
-
-    const strong = (index % 4 === 0);
-
-    return `
-      <line
-        x1="${x}"
-        y1="0"
-        x2="${x}"
-        y2="130"
-        stroke="#dce5ec"
-        stroke-width="${strong ? 1.5 : 1}"
-        opacity="${strong ? 0.8 : 0.35}"
-      />
-    `;
-  }).join("");
-
-  $("#spark").innerHTML = `
-    ${weekGrid}
-
-    <line x1="0" y1="130"
-          x2="600" y2="130"
-          stroke="#dce5ec"/>
-
-    <polygon points="0,130 ${points} 600,130"
-             fill="#22a69918"/>
-
-    <polyline points="${points}"
-              fill="none"
-              stroke="#22a699"
-              stroke-width="3"/>
-  `;
-
-  const average =
-    values.reduce((sum,value) => sum + value, 0) /
-    values.length;
-
-  $("#weeklyNote").textContent =
-    "Current average: " +
-    (average * 100).toFixed(1) +
-    "% of tracked fields populated across " +
-    values.length +
-    " weeks.";
-}
-
 function renderAll() {
   const types = annual.length
     ? countBy(annual,6)
     : SNAP.types;
-
-  const months = annual.length
-    ? countBy(annual,3)
-    : SNAP.months;
-
-  const teams = annual.length
-    ? countBy(annual,0)
-    : SNAP.teams;
 
   const activities = annual.length
     ? new Set(
@@ -1376,14 +1116,6 @@ function renderAll() {
   $("#kAttention").textContent = types.Attention || 0;
   $("#kUnscheduled").textContent = types.Unscheduled || 0;
 
-  renderBars("#monthBars", months, [
-    "Jan","Feb","Mar","Apr","May","Jun",
-    "Jul","Aug","Sep","Oct","Nov","Dec"
-  ]);
-
-  renderBars("#teamBars", teams);
-  renderDonut(types);
-  renderWeeklyChart();
   updateFilters();
   renderTable();
 }
